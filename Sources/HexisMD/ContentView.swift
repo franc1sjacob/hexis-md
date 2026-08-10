@@ -3,6 +3,7 @@ import Textual
 
 enum ViewMode: String, CaseIterable, Identifiable {
     case source = "Source"
+    case split = "Split"
     case preview = "Preview"
     var id: String { rawValue }
 }
@@ -18,6 +19,13 @@ struct ContentView: View {
                 PreviewView(text: text)
             case .source:
                 SourceView(text: $text)
+            case .split:
+                HSplitView {
+                    SourceView(text: $text)
+                        .frame(minWidth: 240)
+                    PreviewView(text: text)
+                        .frame(minWidth: 240)
+                }
             }
         }
         .frame(minWidth: 480, minHeight: 320)
