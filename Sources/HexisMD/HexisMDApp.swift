@@ -18,7 +18,7 @@ struct HexisMDApp: App {
 
     var body: some Scene {
         DocumentGroup(newDocument: MarkdownDocument()) { file in
-            ContentView(text: file.$document.text)
+            ContentView(text: file.$document.text, fileURL: file.fileURL)
         }
         .commands {
             FormatCommands()

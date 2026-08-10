@@ -11,6 +11,7 @@ enum ViewMode: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @Binding var text: String
+    let fileURL: URL?
     @State private var mode: ViewMode = .source
     @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
     @State private var recents: [URL] = []
@@ -41,10 +42,21 @@ struct ContentView: View {
                     }
                 }
         }
-        .task { refreshRecents() }
+        .task { registerAndRefresh() }
+        .onChange(of: fileURL) { _, _ in registerAndRefresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             refreshRecents()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            refreshRecents()
+        }
+    }
+
+    private func registerAndRefresh() {
+        if let url = fileURL {
+            NSDocumentController.shared.noteNewRecentDocumentURL(url)
+        }
+        refreshRecents()
     }
 
     @ViewBuilder
