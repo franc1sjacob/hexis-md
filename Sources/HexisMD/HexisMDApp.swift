@@ -17,7 +17,6 @@ struct HexisMDApp: App {
             ContentView(text: file.$document.text)
         }
         .commands {
-            CommandGroup(replacing: .newItem) {}
             FormatCommands()
         }
 

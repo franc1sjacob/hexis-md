@@ -23,6 +23,14 @@ struct ContentView: View {
             editor
                 .frame(minWidth: 480, minHeight: 320)
                 .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Button {
+                            NSDocumentController.shared.newDocument(nil)
+                        } label: {
+                            Image(systemName: "square.and.pencil")
+                        }
+                        .help("New Document")
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         Picker("View", selection: $mode) {
                             ForEach(ViewMode.allCases) { m in
