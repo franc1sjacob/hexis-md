@@ -7,6 +7,10 @@ struct HexisMDApp: App {
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
         FontPanelBridge.shared.install()
+        if let url = Bundle.module.url(forResource: "AppIcon", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            NSApplication.shared.applicationIconImage = image
+        }
         DispatchQueue.main.async {
             NSApplication.shared.activate(ignoringOtherApps: true)
         }

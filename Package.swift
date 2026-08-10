@@ -13,7 +13,10 @@ let package = Package(
             dependencies: [
                 .product(name: "Textual", package: "textual"),
             ],
-            path: "Sources/HexisMD"
+            path: "Sources/HexisMD",
+            resources: [
+                .copy("Resources/AppIcon.png"),
+            ]
         )
     ]
 )
