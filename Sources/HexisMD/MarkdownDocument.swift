@@ -6,7 +6,7 @@ extension UTType {
 }
 
 struct MarkdownDocument: FileDocument {
-    static var readableContentTypes: [UTType] = [.markdown, .plainText]
+    static let readableContentTypes: [UTType] = [.markdown, .plainText]
 
     var text: String
 

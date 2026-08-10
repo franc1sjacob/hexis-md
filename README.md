@@ -1,4 +1,4 @@
-# Markdown Viewer
+# HexisMD
 
 A tiny native macOS app for viewing `.md` files as rendered documents or raw source.
 
