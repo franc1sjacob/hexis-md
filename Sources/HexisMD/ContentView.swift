@@ -59,10 +59,14 @@ struct PreviewView: View {
 struct SourceView: View {
     @Binding var text: String
 
+    @AppStorage("editorFontName")    private var fontName: String = ""
+    @AppStorage("editorSize")        private var fontSize: Double = 13
+    @AppStorage("editorLineSpacing") private var lineSpacing: Double = 2
+
     var body: some View {
         TextEditor(text: $text)
-            .font(.system(size: 13, design: .monospaced))
-            .lineSpacing(2)
+            .font(EditorFontResolver.swiftUIFont(name: fontName, size: fontSize))
+            .lineSpacing(lineSpacing)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(Color(nsColor: .textBackgroundColor))

@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct HexisMDApp: App {
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
+        FontPanelBridge.shared.install()
         DispatchQueue.main.async {
             NSApplication.shared.activate(ignoringOtherApps: true)
         }
@@ -17,6 +18,11 @@ struct HexisMDApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
+            FormatCommands()
+        }
+
+        Settings {
+            SettingsView()
         }
     }
 }
