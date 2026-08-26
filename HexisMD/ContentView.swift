@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var mode: ViewMode = .source
     @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
     @State private var recents: [URL] = []
+    @State private var showReloadConfirm = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -31,6 +32,16 @@ struct ContentView: View {
                             Image(systemName: "square.and.pencil")
                         }
                         .help("New Document")
+                    }
+                    ToolbarItem(placement: .navigation) {
+                        Button {
+                            attemptReload()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .keyboardShortcut("r", modifiers: .command)
+                        .disabled(fileURL == nil)
+                        .help("Reload from Disk")
                     }
                     ToolbarItem(placement: .primaryAction) {
                         Picker("View", selection: $mode) {
@@ -49,6 +60,37 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
             refreshRecents()
+        }
+        .confirmationDialog(
+            "Reload from disk? Unsaved changes will be lost.",
+            isPresented: $showReloadConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Reload", role: .destructive) { reloadFromDisk() }
+            Button("Cancel", role: .cancel) { }
+        }
+    }
+
+    private func attemptReload() {
+        guard let url = fileURL,
+              let document = NSDocumentController.shared.document(for: url) else { return }
+        if document.isDocumentEdited {
+            showReloadConfirm = true
+        } else {
+            reloadFromDisk()
+        }
+    }
+
+    private func reloadFromDisk() {
+        guard let url = fileURL,
+              let document = NSDocumentController.shared.document(for: url) else { return }
+        let typeName = (try? url.resourceValues(forKeys: [.typeIdentifierKey]).typeIdentifier)
+            ?? document.fileType
+            ?? "public.plain-text"
+        do {
+            try document.revert(toContentsOf: url, ofType: typeName)
+        } catch {
+            NSAlert(error: error).runModal()
         }
     }
 
