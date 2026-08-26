@@ -1,8 +1,17 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager (kept for future / lockfile)
 .build/
 .swiftpm/
-Package.resolved
-*.xcodeproj/
-DerivedData/
-.DS_Store
-.build/
-build/
