@@ -51,7 +51,6 @@ First-run UX for downloaders: right-click the app and choose **Open** to bypass 
 ## Roadmap
 
 - Optional syntax highlighting in the source view
-- Tabbed mode (multiple documents in a single window)
 - Print / export PDF via the standard macOS dialog
 
 ## Contributing
