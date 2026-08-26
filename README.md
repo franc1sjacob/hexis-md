@@ -48,11 +48,6 @@ Produce an ad-hoc signed `.zip` suitable for uploading to a GitHub Release:
 
 First-run UX for downloaders: right-click the app and choose **Open** to bypass Gatekeeper (the build is ad-hoc signed, not notarized).
 
-## Roadmap
-
-- Optional syntax highlighting in the source view
-- Print / export PDF via the standard macOS dialog
-
 ## Contributing
 
 Issues and PRs welcome. This is intentionally a small app; features that push it toward being an IDE, vault, or note-taking system are out of scope.
