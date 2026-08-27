@@ -9,6 +9,11 @@ enum ViewMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum FocusedPane {
+    case source
+    case preview
+}
+
 struct ContentView: View {
     @Binding var text: String
     let fileURL: URL?
@@ -16,6 +21,26 @@ struct ContentView: View {
     @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
     @State private var recents: [URL] = []
     @State private var showReloadConfirm = false
+    @AppStorage("previewFontSize") private var previewFontSize: Double = PreviewZoom.defaultSize
+    @State private var focusedPane: FocusedPane = .source
+
+    private var previewVisible: Bool { mode == .preview || mode == .split }
+
+    private var sourceActive: Bool {
+        switch mode {
+        case .source: return true
+        case .preview: return false
+        case .split: return focusedPane == .source
+        }
+    }
+
+    private var previewActive: Bool {
+        switch mode {
+        case .source: return false
+        case .preview: return true
+        case .split: return focusedPane == .preview
+        }
+    }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -105,15 +130,17 @@ struct ContentView: View {
     private var editor: some View {
         switch mode {
         case .preview:
-            PreviewView(text: text)
+            PreviewView(text: text, fontSize: $previewFontSize, shortcutsActive: previewActive)
         case .source:
-            SourceView(text: $text)
+            SourceView(text: $text, shortcutsActive: sourceActive)
         case .split:
             HSplitView {
-                SourceView(text: $text)
+                SourceView(text: $text, shortcutsActive: sourceActive)
                     .frame(minWidth: 240)
-                PreviewView(text: text)
+                    .simultaneousGesture(TapGesture().onEnded { focusedPane = .source })
+                PreviewView(text: text, fontSize: $previewFontSize, shortcutsActive: previewActive)
                     .frame(minWidth: 240)
+                    .simultaneousGesture(TapGesture().onEnded { focusedPane = .preview })
             }
         }
     }
@@ -168,25 +195,55 @@ struct RecentsSidebar: View {
     }
 }
 
+struct ZoomConfig {
+    let minSize: Double
+    let maxSize: Double
+    let defaultSize: Double
+
+    func clamp(_ value: Double) -> Double {
+        min(maxSize, max(minSize, value))
+    }
+
+    func percent(_ size: Double) -> Int {
+        Int((size / defaultSize * 100).rounded())
+    }
+
+    static let preview = ZoomConfig(minSize: 10, maxSize: 32, defaultSize: 15)
+    static let source = ZoomConfig(minSize: 9, maxSize: 32, defaultSize: 13)
+}
+
+enum PreviewZoom {
+    static let defaultSize = ZoomConfig.preview.defaultSize
+}
+
+enum SourceZoom {
+    static let defaultSize = ZoomConfig.source.defaultSize
+}
+
 struct PreviewView: View {
     let text: String
+    @Binding var fontSize: Double
+    var shortcutsActive: Bool = true
 
     var body: some View {
         ScrollView {
             StructuredText(markdown: text)
                 .textual.structuredTextStyle(.gitHub)
-                .frame(maxWidth: 720, alignment: .leading)
+                .font(.system(size: fontSize))
+                .frame(maxWidth: 720 * (fontSize / PreviewZoom.defaultSize), alignment: .leading)
                 .padding(32)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
+        .modifier(ZoomOverlay(fontSize: $fontSize, config: .preview, shortcutsActive: shortcutsActive))
     }
 }
 
 struct SourceView: View {
     @Binding var text: String
+    var shortcutsActive: Bool = true
 
     @AppStorage("editorFontName")    private var fontName: String = ""
-    @AppStorage("editorSize")        private var fontSize: Double = 13
+    @AppStorage("editorSize")        private var fontSize: Double = SourceZoom.defaultSize
     @AppStorage("editorLineSpacing") private var lineSpacing: Double = 2
 
     var body: some View {
@@ -197,5 +254,134 @@ struct SourceView: View {
             .padding(.vertical, 12)
             .background(Color(nsColor: .textBackgroundColor))
             .scrollContentBackground(.hidden)
+            .modifier(ZoomOverlay(fontSize: $fontSize, config: .source, shortcutsActive: shortcutsActive))
+    }
+}
+
+struct ZoomOverlay: ViewModifier {
+    @Binding var fontSize: Double
+    let config: ZoomConfig
+    var shortcutsActive: Bool = true
+
+    @State private var hoveringCorner = false
+    @State private var recentActivity = false
+    @State private var activityHideTask: Task<Void, Never>?
+    @State private var hoverHideTask: Task<Void, Never>?
+
+    private var pillVisible: Bool { hoveringCorner || recentActivity }
+
+    func body(content: Content) -> some View {
+        content
+            .background {
+                if shortcutsActive {
+                    VStack {
+                        Button("Zoom In") { bump(1) }
+                            .keyboardShortcut("=", modifiers: .command)
+                        Button("Zoom In") { bump(1) }
+                            .keyboardShortcut("+", modifiers: .command)
+                        Button("Zoom Out") { bump(-1) }
+                            .keyboardShortcut("-", modifiers: .command)
+                        Button("Actual Size") { reset() }
+                            .keyboardShortcut("0", modifiers: .command)
+                    }
+                    .hidden()
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                ZStack(alignment: .bottomTrailing) {
+                    Color.clear
+                        .contentShape(Rectangle())
+                    ZoomControl(
+                        fontSize: fontSize,
+                        config: config,
+                        onZoomIn: { bump(1) },
+                        onZoomOut: { bump(-1) },
+                        onReset: reset
+                    )
+                    .padding(24)
+                    .opacity(pillVisible ? 1 : 0)
+                    .allowsHitTesting(pillVisible)
+                    .animation(.easeInOut(duration: 0.18), value: pillVisible)
+                }
+                .frame(width: 220, height: 100)
+                .onHover { hovering in
+                    hoverHideTask?.cancel()
+                    if hovering {
+                        hoveringCorner = true
+                    } else {
+                        hoverHideTask = Task {
+                            try? await Task.sleep(nanoseconds: 250_000_000)
+                            if !Task.isCancelled {
+                                await MainActor.run { hoveringCorner = false }
+                            }
+                        }
+                    }
+                }
+            }
+    }
+
+    private func bump(_ delta: Double) {
+        fontSize = config.clamp(fontSize + delta)
+        flashActivity()
+    }
+
+    private func reset() {
+        fontSize = config.defaultSize
+        flashActivity()
+    }
+
+    private func flashActivity() {
+        recentActivity = true
+        activityHideTask?.cancel()
+        activityHideTask = Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if !Task.isCancelled {
+                await MainActor.run { recentActivity = false }
+            }
+        }
+    }
+}
+
+struct ZoomControl: View {
+    let fontSize: Double
+    let config: ZoomConfig
+    let onZoomIn: () -> Void
+    let onZoomOut: () -> Void
+    let onReset: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Button(action: onZoomOut) {
+                Image(systemName: "minus")
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(fontSize <= config.minSize)
+            .help("Zoom Out")
+
+            Button(action: onReset) {
+                Text("\(config.percent(fontSize))%")
+                    .font(.system(size: 12, weight: .medium).monospacedDigit())
+                    .frame(minWidth: 44, minHeight: 24)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Reset Zoom")
+
+            Button(action: onZoomIn) {
+                Image(systemName: "plus")
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(fontSize >= config.maxSize)
+            .help("Zoom In")
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.separator.opacity(0.5)))
+        .shadow(color: .black.opacity(0.15), radius: 6, y: 2)
     }
 }
