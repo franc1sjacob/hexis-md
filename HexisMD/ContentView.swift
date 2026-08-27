@@ -137,10 +137,10 @@ struct ContentView: View {
             HSplitView {
                 SourceView(text: $text, shortcutsActive: sourceActive)
                     .frame(minWidth: 240)
-                    .simultaneousGesture(TapGesture().onEnded { focusedPane = .source })
+                    .onHover { if $0 { focusedPane = .source } }
                 PreviewView(text: text, fontSize: $previewFontSize, shortcutsActive: previewActive)
                     .frame(minWidth: 240)
-                    .simultaneousGesture(TapGesture().onEnded { focusedPane = .preview })
+                    .onHover { if $0 { focusedPane = .preview } }
             }
         }
     }
@@ -229,6 +229,7 @@ struct PreviewView: View {
         ScrollView {
             StructuredText(markdown: text)
                 .textual.structuredTextStyle(.gitHub)
+                .textual.textSelection(.enabled)
                 .font(.system(size: fontSize))
                 .frame(maxWidth: 720 * (fontSize / PreviewZoom.defaultSize), alignment: .leading)
                 .padding(32)
@@ -246,6 +247,8 @@ struct SourceView: View {
     @AppStorage("editorSize")        private var fontSize: Double = SourceZoom.defaultSize
     @AppStorage("editorLineSpacing") private var lineSpacing: Double = 2
 
+    @State private var showFind = false
+
     var body: some View {
         TextEditor(text: $text)
             .font(EditorFontResolver.swiftUIFont(name: fontName, size: fontSize))
@@ -254,6 +257,14 @@ struct SourceView: View {
             .padding(.vertical, 12)
             .background(Color(nsColor: .textBackgroundColor))
             .scrollContentBackground(.hidden)
+            .findNavigator(isPresented: $showFind)
+            .background {
+                if shortcutsActive {
+                    Button("Find") { showFind.toggle() }
+                        .keyboardShortcut("f", modifiers: .command)
+                        .hidden()
+                }
+            }
             .modifier(ZoomOverlay(fontSize: $fontSize, config: .source, shortcutsActive: shortcutsActive))
     }
 }
