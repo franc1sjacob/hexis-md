@@ -228,6 +228,7 @@ struct PreviewView: View {
     var body: some View {
         ScrollView {
             StructuredText(markdown: text)
+                .textual.codeBlockStyle(MermaidAwareCodeBlockStyle(fontSize: fontSize))
                 .textual.structuredTextStyle(.gitHub)
                 .textual.textSelection(.enabled)
                 .font(.system(size: fontSize))
