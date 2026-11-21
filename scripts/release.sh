@@ -43,3 +43,8 @@ if [[ "${1:-}" == "--install" ]]; then
   cp -R "$APP" "$DEST"
   echo "==> Installed. Launch with: open '$DEST'"
 fi
+
+# Drop the build products so the only launchable copy is the installed one.
+echo "==> Cleaning up build products"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$APP" || true
+rm -rf "$DD"
