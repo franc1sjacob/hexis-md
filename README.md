@@ -17,6 +17,7 @@ macOS doesn't ship with a simple Markdown viewer, so double-clicking a `.md` usu
 - Opens `.md` and `.markdown` files via `File > Open`, drag-and-drop, or as the default app
 - **Source**, **Split**, and **Preview** views with a toolbar toggle
 - GitHub-flavored Markdown rendering in Preview
+- Mermaid diagrams (```` ```mermaid ```` blocks) rendered in Preview, bundled for offline use
 - Sidebar with recent documents
 - Reload from disk (`⌘R`) for when the file is changed by another process
 - Native document model, so `⌘S` saves, multiple windows work, and standard macOS behaviors apply
